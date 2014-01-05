@@ -9,6 +9,7 @@ use warnings;
 use autodie;
 use feature 'say';
 use Getopt::Long;
+use Data::Printer; # TEMP
 
 #TODO: Add README
 
@@ -32,8 +33,10 @@ my $options = GetOptions(
 
 check_options( $samtools_path );
 
-get_read_info( $bam_file, $samtools_path );
+my $read_stats = get_read_info( $bam_file, $samtools_path );
 extract_flanking_seqs();
+
+p $read_stats;
 
 exit;
 
@@ -47,15 +50,24 @@ sub check_options {
 sub get_read_info {
     my ( $bam_file, $samtools_path ) = @_;
 
+    my %read_stats;
+
     my $samtools_cmd = "$samtools_path view -X $bam_file";
     open my $bam_fh, "-|", $samtools_cmd;
     while ( my $read = <$bam_fh> ) {
-        my ( $read_id, $flag, $seq_id, $pos, $cigar, $seq )
-            = ( split /\t/, $read )[ 0 .. 3, 5, 9 ];
-        say $read;
-        say "$read_id-$flag-$seq_id-$pos-$cigar-$seq";
+        my ( $read_id, $flag, $seq_id, $pos, $cigar )
+            = ( split /\t/, $read )[ 0 .. 3, 5 ];
+
+        next if $flag =~ /u/;
+
+        $read_stats{$read_id}{seq_id} = $seq_id;
+        $read_stats{$read_id}{strand} = $flag =~ /r/ ? "rev" : "fwd";
+        $read_stats{$read_id}{pos}    = $pos;
+        $read_stats{$read_id}{cigar}  = $cigar;
     }
     close $bam_fh;
+
+    return \%read_stats;
 }
 
 sub extract_flanking_seqs {
