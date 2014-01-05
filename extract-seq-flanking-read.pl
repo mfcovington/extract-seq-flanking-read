@@ -32,7 +32,7 @@ my $options = GetOptions(
 
 check_options( $samtools_path );
 
-get_read_info();
+get_read_info( $bam_file, $samtools_path );
 extract_flanking_seqs();
 
 exit;
@@ -45,7 +45,17 @@ sub check_options {
 }
 
 sub get_read_info {
-    # body...
+    my ( $bam_file, $samtools_path ) = @_;
+
+    my $samtools_cmd = "$samtools_path view -X $bam_file";
+    open my $bam_fh, "-|", $samtools_cmd;
+    while ( my $read = <$bam_fh> ) {
+        my ( $read_id, $flag, $seq_id, $pos, $cigar, $seq )
+            = ( split /\t/, $read )[ 0 .. 3, 5, 9 ];
+        say $read;
+        say "$read_id-$flag-$seq_id-$pos-$cigar-$seq";
+    }
+    close $bam_fh;
 }
 
 sub extract_flanking_seqs {
