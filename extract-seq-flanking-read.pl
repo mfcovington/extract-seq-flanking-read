@@ -9,6 +9,7 @@ use warnings;
 use autodie;
 use feature 'say';
 use Getopt::Long;
+use List::Util 'sum';
 use Data::Printer; # TEMP
 
 #TODO: Add README
@@ -93,13 +94,24 @@ sub get_positions {
             $end   = $pos - 1;
         }
         elsif ( $strand eq "rev" ) {
-            #
+            my $rt_pos = $pos - 1 + cigar_to_length($cigar);
+            $start = $rt_pos + 1;
+            $end   = $rt_pos + $flank_length;
         }
         else { die "Problem with strand info\n" }
 
         $$read_stats{$read_id}{start} = $start;
         $$read_stats{$read_id}{end}   = $end;
     }
+}
+
+sub cigar_to_length {
+    my $cigar = shift;
+
+    my @add = $cigar =~ /(\d+)[MND]/g;
+    my $length = sum @add;
+
+    return $length;
 }
 
 sub get_sequences {
