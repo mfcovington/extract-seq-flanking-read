@@ -34,7 +34,8 @@ my $options = GetOptions(
 check_options( $samtools_path );
 
 my $read_stats = get_read_info( $bam_file, $samtools_path );
-extract_flanking_seqs();
+extract_flanking_seqs( $read_stats, $flank_length, $samtools_path );
+write_to_fasta( $read_stats, $output_fa_file, $fa_width );
 
 p $read_stats;
 
@@ -71,5 +72,13 @@ sub get_read_info {
 }
 
 sub extract_flanking_seqs {
-    # body...
+    my ( $read_stats, $flank_length, $samtools_path ) = @_;
+
+
+}
+
+sub write_to_fasta {
+    my ( $read_stats, $output_fa_file, $fa_width ) = @_;
+
+
 }
