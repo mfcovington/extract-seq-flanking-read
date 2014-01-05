@@ -74,7 +74,36 @@ sub get_read_info {
 sub extract_flanking_seqs {
     my ( $read_stats, $flank_length, $samtools_path ) = @_;
 
+    get_positions( $read_stats, $flank_length );
+    get_sequences( $read_stats, $samtools_path );
+}
 
+sub get_positions {
+    my ( $read_stats, $flank_length ) = @_;
+
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $strand = $$read_stats{$read_id}{strand};
+        my $pos    = $$read_stats{$read_id}{pos};
+        my $cigar  = $$read_stats{$read_id}{cigar};
+
+        my ( $start, $end );
+        if ( $strand eq "fwd" ) {
+            $start = $pos - $flank_length;
+            $end   = $pos - 1;
+        }
+        elsif ( $strand eq "rev" ) {
+            #
+        }
+        else { die "Problem with strand info\n" }
+
+        $$read_stats{$read_id}{start} = $start;
+        $$read_stats{$read_id}{end}   = $end;
+    }
+}
+
+sub get_sequences {
+    # body...
 }
 
 sub write_to_fasta {
