@@ -10,7 +10,6 @@ use autodie;
 use feature 'say';
 use Getopt::Long;
 use List::Util 'sum';
-use Data::Printer; # TEMP
 
 #TODO: Add README
 #TODO: Consider other CIGAR score variants?
@@ -39,8 +38,6 @@ my $read_stats = get_read_info( $bam_file, $samtools_path );
 extract_flanking_seqs( $read_stats, $flank_length, $ref_fa_file,
     $samtools_path );
 write_to_fasta( $read_stats, $output_fa_file, $fa_width );
-
-p $read_stats;
 
 exit;
 
@@ -157,7 +154,7 @@ sub write_to_fasta {
     my ( $read_stats, $output_fa_file, $fa_width ) = @_;
 
     open my $output_fa_fh, ">", $output_fa_file;
-    for my $read_id ( keys $read_stats ) {
+    for my $read_id ( sort keys $read_stats ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $flank  = $$read_stats{$read_id}{flank};
 
