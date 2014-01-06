@@ -60,11 +60,12 @@ sub get_read_info {
             = ( split /\t/, $read )[ 0 .. 3, 5 ];
 
         next if $flag =~ /u/;
+        my $strand = $flag =~ /r/ ? "-" : "+";
 
-        $read_id .= ".1" if exists $read_stats{$read_id};
+        $read_id = join "_", $read_id, $seq_id, $pos, $strand;
 
         $read_stats{$read_id}{seq_id} = $seq_id;
-        $read_stats{$read_id}{strand} = $flag =~ /r/ ? "-" : "+";
+        $read_stats{$read_id}{strand} = $strand;
         $read_stats{$read_id}{pos}    = $pos;
         $read_stats{$read_id}{cigar}  = $cigar;
     }
