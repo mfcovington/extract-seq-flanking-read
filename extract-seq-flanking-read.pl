@@ -156,5 +156,23 @@ sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
 sub write_to_fasta {
     my ( $read_stats, $output_fa_file, $fa_width ) = @_;
 
+    open my $output_fa_fh, ">", $output_fa_file;
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $flank  = $$read_stats{$read_id}{flank};
 
+        output_fa( $read_id, $flank, $output_fa_fh, $fa_width );
+    }
+    close $output_fa_fh;
 }
+
+sub output_fa {    # This subroutine from extract-utr v0.2.1
+    my ( $seqid, $seq, $output_fa_fh, $fa_width ) = @_;
+
+    $fa_width //= 80;
+    my @fa_seq = unpack "(A$fa_width)*", $seq;
+
+    say $output_fa_fh ">$seqid";
+    say $output_fa_fh $_ for @fa_seq;
+}
+
