@@ -37,7 +37,7 @@ check_options( $samtools_path );
 my $read_stats = get_read_info( $bam_file, $samtools_path );
 extract_flanking_seqs( $read_stats, $flank_length, $ref_fa_file,
     $samtools_path );
-write_to_fasta( $read_stats, $output_fa_file, $fa_width );
+write_to_fasta( $read_stats, $output_fa_file, $flank_length, $fa_width );
 
 exit;
 
@@ -60,11 +60,12 @@ sub get_read_info {
             = ( split /\t/, $read )[ 0 .. 3, 5 ];
 
         next if $flag =~ /u/;
+        my $strand = $flag =~ /r/ ? "-" : "+";
 
-        $read_id .= ".1" if exists $read_stats{$read_id};
+        $read_id = join "_", $read_id, $seq_id, $pos, $strand;
 
         $read_stats{$read_id}{seq_id} = $seq_id;
-        $read_stats{$read_id}{strand} = $flag =~ /r/ ? "-" : "+";
+        $read_stats{$read_id}{strand} = $strand;
         $read_stats{$read_id}{pos}    = $pos;
         $read_stats{$read_id}{cigar}  = $cigar;
     }
@@ -153,7 +154,7 @@ sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
 }
 
 sub write_to_fasta {
-    my ( $read_stats, $output_fa_file, $fa_width ) = @_;
+    my ( $read_stats, $output_fa_file, $flank_length, $fa_width ) = @_;
 
     my @ids_sorted_by_coords = sort {
         $$read_stats{$a}{seq_id} cmp $$read_stats{$b}{seq_id}
@@ -165,7 +166,8 @@ sub write_to_fasta {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $flank  = $$read_stats{$read_id}{flank};
 
-        output_fa( $read_id, $flank, $output_fa_fh, $fa_width );
+        my $read_id_desc = "$read_id -${flank_length}bp..-1bp";
+        output_fa( $read_id_desc, $flank, $output_fa_fh, $fa_width );
     }
     close $output_fa_fh;
 }
@@ -179,4 +181,3 @@ sub output_fa {    # This subroutine from extract-utr v0.2.1
     say $output_fa_fh ">$seqid";
     say $output_fa_fh $_ for @fa_seq;
 }
-
