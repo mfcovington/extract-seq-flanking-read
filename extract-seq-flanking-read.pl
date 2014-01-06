@@ -13,6 +13,7 @@ use List::Util 'sum';
 use Data::Printer; # TEMP
 
 #TODO: Add README
+#TODO: Consider other CIGAR score variants?
 
 # Defaults
 my $bam_file       = "t/sample-files/sample.bam";
@@ -35,7 +36,8 @@ my $options = GetOptions(
 check_options( $samtools_path );
 
 my $read_stats = get_read_info( $bam_file, $samtools_path );
-extract_flanking_seqs( $read_stats, $flank_length, $samtools_path );
+extract_flanking_seqs( $read_stats, $flank_length, $ref_fa_file,
+    $samtools_path );
 write_to_fasta( $read_stats, $output_fa_file, $fa_width );
 
 p $read_stats;
@@ -63,7 +65,7 @@ sub get_read_info {
         next if $flag =~ /u/;
 
         $read_stats{$read_id}{seq_id} = $seq_id;
-        $read_stats{$read_id}{strand} = $flag =~ /r/ ? "rev" : "fwd";
+        $read_stats{$read_id}{strand} = $flag =~ /r/ ? "-" : "+";
         $read_stats{$read_id}{pos}    = $pos;
         $read_stats{$read_id}{cigar}  = $cigar;
     }
@@ -73,10 +75,10 @@ sub get_read_info {
 }
 
 sub extract_flanking_seqs {
-    my ( $read_stats, $flank_length, $samtools_path ) = @_;
+    my ( $read_stats, $flank_length, $ref_fa_file, $samtools_path ) = @_;
 
     get_positions( $read_stats, $flank_length );
-    get_sequences( $read_stats, $samtools_path );
+    get_sequences( $read_stats, $ref_fa_file, $samtools_path );
 }
 
 sub get_positions {
@@ -89,11 +91,11 @@ sub get_positions {
         my $cigar  = $$read_stats{$read_id}{cigar};
 
         my ( $start, $end );
-        if ( $strand eq "fwd" ) {
+        if ( $strand eq "+" ) {
             $start = $pos - $flank_length;
             $end   = $pos - 1;
         }
-        elsif ( $strand eq "rev" ) {
+        elsif ( $strand eq "-" ) {
             my $rt_pos = $pos - 1 + cigar_to_length($cigar);
             $start = $rt_pos + 1;
             $end   = $rt_pos + $flank_length;
@@ -115,7 +117,40 @@ sub cigar_to_length {
 }
 
 sub get_sequences {
-    # body...
+    my ( $read_stats, $ref_fa_file, $samtools_path ) = @_;
+
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $strand = $$read_stats{$read_id}{strand};
+        my $start  = $$read_stats{$read_id}{start};
+        my $end    = $$read_stats{$read_id}{end};
+
+        $$read_stats{$read_id}{flank}
+            = extract_fa_seq( $samtools_path, $ref_fa_file, $seq_id, $strand,
+            $start, $end );
+    }
+}
+
+sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
+    my ( $samtools_path, $fa_file, $seqid, $strand, $left_pos, $right_pos )
+        = @_;
+
+    my $faidx_cmd =
+      defined $left_pos && defined $right_pos
+      ? "$samtools_path faidx $fa_file $seqid:$left_pos-$right_pos"
+      : "$samtools_path faidx $fa_file $seqid";
+
+    my ( $fa_header, @fa_seq ) = `$faidx_cmd`;
+    chomp @fa_seq;
+
+    my $seq = join "", @fa_seq;
+
+    if ( defined $strand && $strand eq '-' ) {
+        $seq = reverse $seq;
+        $seq =~ tr/ACGTacgt/TGCAtgca/;
+    }
+
+    return $seq;
 }
 
 sub write_to_fasta {
