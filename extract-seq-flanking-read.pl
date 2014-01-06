@@ -155,7 +155,7 @@ sub write_to_fasta {
 
     my @ids_sorted_by_coords = sort {
         $$read_stats{$a}{seq_id} cmp $$read_stats{$b}{seq_id}
-            || $$read_stats{$a}{start} <=> $$read_stats{$b}{start}
+            || $$read_stats{$a}{pos} <=> $$read_stats{$b}{pos}
     } keys $read_stats;
 
     open my $output_fa_fh, ">", $output_fa_file;
