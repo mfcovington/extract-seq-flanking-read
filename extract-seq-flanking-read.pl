@@ -61,6 +61,8 @@ sub get_read_info {
 
         next if $flag =~ /u/;
 
+        $read_id .= ".1" if exists $read_stats{$read_id};
+
         $read_stats{$read_id}{seq_id} = $seq_id;
         $read_stats{$read_id}{strand} = $flag =~ /r/ ? "-" : "+";
         $read_stats{$read_id}{pos}    = $pos;
