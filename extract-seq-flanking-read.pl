@@ -153,8 +153,13 @@ sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
 sub write_to_fasta {
     my ( $read_stats, $output_fa_file, $fa_width ) = @_;
 
+    my @ids_sorted_by_coords = sort {
+        $$read_stats{$a}{seq_id} cmp $$read_stats{$b}{seq_id}
+            || $$read_stats{$a}{start} <=> $$read_stats{$b}{start}
+    } keys $read_stats;
+
     open my $output_fa_fh, ">", $output_fa_file;
-    for my $read_id ( sort keys $read_stats ) {
+    for my $read_id ( @ids_sorted_by_coords ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $flank  = $$read_stats{$read_id}{flank};
 
