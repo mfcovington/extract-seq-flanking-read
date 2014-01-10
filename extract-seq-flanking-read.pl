@@ -145,12 +145,19 @@ sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
 
     my $seq = join "", @fa_seq;
 
-    if ( defined $strand && $strand eq '-' ) {
-        $seq = reverse $seq;
-        $seq =~ tr/ACGTacgt/TGCAtgca/;
-    }
+    $seq = reverse_complement($seq)
+      if defined $strand && $strand eq '-';
 
     return $seq;
+}
+
+sub reverse_complement {
+    my $seq = shift;
+
+    my $revcom = reverse $seq;
+    $revcom =~ tr/ACGTacgt/TGCAtgca/;
+
+    return $revcom;
 }
 
 sub write_to_fasta {
