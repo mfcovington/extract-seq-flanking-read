@@ -22,6 +22,7 @@ my $samtools_path  = glob "~/installs/bin/samtools";
 
 my $flank_length = 10;
 my $fa_width     = 80;
+my $bulk;
 
 my $options = GetOptions(
     "bam_file=s"       => \$bam_file,
@@ -30,6 +31,7 @@ my $options = GetOptions(
     "samtools_path=s"  => \$samtools_path,
     "flank_length=i"   => \$flank_length,
     "fa_width=i"       => \$fa_width,
+    "bulk"             => \$bulk,
 );
 
 check_options( $samtools_path );
@@ -78,7 +80,12 @@ sub extract_flanking_seqs {
     my ( $read_stats, $flank_length, $ref_fa_file, $samtools_path ) = @_;
 
     get_positions( $read_stats, $flank_length );
-    get_sequences( $read_stats, $ref_fa_file, $samtools_path );
+    if ($bulk) {
+        get_sequences_bulk( $read_stats, $ref_fa_file, $flank_length, $samtools_path );
+    }
+    else {
+        get_sequences( $read_stats, $ref_fa_file, $samtools_path );
+    }
 }
 
 sub get_positions {
@@ -131,6 +138,27 @@ sub get_sequences {
     }
 }
 
+sub get_sequences_bulk {
+    my ( $read_stats, $ref_fa_file, $flank_length, $samtools_path ) = @_;
+
+    my %sequences;
+
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $strand = $$read_stats{$read_id}{strand};
+        my $start  = $$read_stats{$read_id}{start};
+        my $end    = $$read_stats{$read_id}{end};
+
+        unless ( exists $sequences{$seq_id} ) {
+            $sequences{$seq_id} = extract_fa_seq( $samtools_path, $ref_fa_file, $seq_id );
+        }
+
+        $$read_stats{$read_id}{flank}
+            = extract_sub_seq( \%sequences, $seq_id, $strand,
+            $start - 1, $flank_length );
+    }
+}
+
 sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
     my ( $samtools_path, $fa_file, $seqid, $strand, $left_pos, $right_pos )
         = @_;
@@ -144,6 +172,17 @@ sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
     chomp @fa_seq;
 
     my $seq = join "", @fa_seq;
+
+    $seq = reverse_complement($seq)
+      if defined $strand && $strand eq '-';
+
+    return $seq;
+}
+
+sub extract_sub_seq {
+    my ( $sequences, $seqid, $strand, $left_pos, $right_pos ) = @_;
+
+    my $seq = substr $$sequences{$seqid}, $left_pos, $right_pos;
 
     $seq = reverse_complement($seq)
       if defined $strand && $strand eq '-';
