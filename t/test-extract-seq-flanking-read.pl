@@ -7,7 +7,7 @@
 use strict;
 use warnings;
 use autodie;
-use Test::More tests => 3;
+use Test::More tests => 4;
 
 my $base_extract_cmd = <<CMD;
 ../extract-seq-flanking-read.pl \\
@@ -28,6 +28,15 @@ compare_extracted_seq( $extract_cmd, $test_name );
 
 $test_name = "10bp-upstream.fast";
 $extract_cmd = "$base_extract_cmd --fast";
+compare_extracted_seq( $extract_cmd, $test_name );
+
+$test_name = "10bp-upstream.edge-cases";
+$extract_cmd = <<CMD;
+../extract-seq-flanking-read.pl \\
+  --bam_file sample-files/sample.edge-cases.bam \\
+  --ref_fa_file sample-files/sample.fa \\
+  --output_fa_file got.fa \\
+CMD
 compare_extracted_seq( $extract_cmd, $test_name );
 
 sub compare_extracted_seq {
