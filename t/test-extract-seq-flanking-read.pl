@@ -7,7 +7,7 @@
 use strict;
 use warnings;
 use autodie;
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 my $base_extract_cmd = <<CMD;
 ../extract-seq-flanking-read.pl \\
@@ -24,6 +24,10 @@ compare_extracted_seq( $extract_cmd, $test_name );
 
 $test_name = "10bp-upstream.bulk";
 $extract_cmd = "$base_extract_cmd --bulk";
+compare_extracted_seq( $extract_cmd, $test_name );
+
+$test_name = "10bp-upstream.fast";
+$extract_cmd = "$base_extract_cmd --fast";
 compare_extracted_seq( $extract_cmd, $test_name );
 
 sub compare_extracted_seq {

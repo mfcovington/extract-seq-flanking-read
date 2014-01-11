@@ -22,7 +22,7 @@ my $samtools_path  = glob "~/installs/bin/samtools";
 
 my $flank_length = 10;
 my $fa_width     = 80;
-my $bulk;
+my ( $bulk, $fast );
 
 my $options = GetOptions(
     "bam_file=s"       => \$bam_file,
@@ -32,6 +32,7 @@ my $options = GetOptions(
     "flank_length=i"   => \$flank_length,
     "fa_width=i"       => \$fa_width,
     "bulk"             => \$bulk,
+    "fast"             => \$fast,
 );
 
 check_options( $samtools_path );
@@ -82,6 +83,9 @@ sub extract_flanking_seqs {
     get_positions( $read_stats, $flank_length );
     if ($bulk) {
         get_sequences_bulk( $read_stats, $ref_fa_file, $flank_length, $samtools_path );
+    }
+    elsif ($fast) {
+        get_sequences_fast( $read_stats, $ref_fa_file, $flank_length, $samtools_path );
     }
     else {
         get_sequences( $read_stats, $ref_fa_file, $samtools_path );
@@ -157,6 +161,48 @@ sub get_sequences_bulk {
             = extract_sub_seq( \%sequences, $seq_id, $strand,
             $start - 1, $flank_length );
     }
+}
+
+sub get_sequences_fast {
+    my ( $read_stats, $ref_fa_file, $flank_length, $samtools_path ) = @_;
+
+    my $sequences = get_all_seqs_from_fa($ref_fa_file);
+
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $strand = $$read_stats{$read_id}{strand};
+        my $start  = $$read_stats{$read_id}{start};
+        my $end    = $$read_stats{$read_id}{end};
+
+        $$read_stats{$read_id}{flank}
+            = extract_sub_seq( $sequences, $seq_id, $strand,
+            $start - 1, $flank_length );
+    }
+}
+
+sub get_all_seqs_from_fa {
+    my $ref_fa_file = shift;
+
+    my %sequences;
+    open my $ref_fa_fh, "<", $ref_fa_file;
+    my ( $seqid, $seq );
+    while ( my $fa_line = <$ref_fa_fh>) {
+        if ($fa_line =~ /^>/) {
+            if ($seq) {
+                $sequences{$seqid} = $seq;
+                $seq = '';
+            }
+            ($seqid) = $fa_line =~ /^>([^\s]+)/;
+        }
+        else{
+            chomp $fa_line;
+            $seq .= $fa_line;
+        }
+    }
+    $sequences{$seqid} = $seq;
+    close $ref_fa_fh;
+
+    return \%sequences;
 }
 
 sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
