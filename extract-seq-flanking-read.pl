@@ -9,10 +9,12 @@ use warnings;
 use autodie;
 use feature 'say';
 use Getopt::Long;
-use List::Util 'sum';
+use List::Util qw( sum min max );
 
 #TODO: Add README
 #TODO: Consider other CIGAR score variants?
+#TODO: Add Usage statement
+#TODO: Default to 'fast mode'
 
 # Defaults
 my $bam_file       = "t/sample-files/sample.bam";
@@ -22,6 +24,7 @@ my $samtools_path  = glob "~/installs/bin/samtools";
 
 my $flank_length = 10;
 my $fa_width     = 80;
+my ( $bulk, $fast );
 
 my $options = GetOptions(
     "bam_file=s"       => \$bam_file,
@@ -30,10 +33,13 @@ my $options = GetOptions(
     "samtools_path=s"  => \$samtools_path,
     "flank_length=i"   => \$flank_length,
     "fa_width=i"       => \$fa_width,
+    "bulk"             => \$bulk,
+    "fast"             => \$fast,
 );
 
 check_options( $samtools_path );
 
+my $seq_lengths = get_seq_lengths( $bam_file, $samtools_path );
 my $read_stats = get_read_info( $bam_file, $samtools_path );
 extract_flanking_seqs( $read_stats, $flank_length, $ref_fa_file,
     $samtools_path );
@@ -46,6 +52,23 @@ sub check_options {
 
     die "Specify correct '--samtools_path'\n"
         unless -e $samtools_path;
+}
+
+sub get_seq_lengths {
+    my ( $bam_file, $samtools_path ) = @_;
+
+    my %seq_lengths;
+
+    my $samtools_cmd = "$samtools_path view -H $bam_file";
+    open my $bam_fh, "-|", $samtools_cmd;
+    while ( my $header_line = <$bam_fh> ) {
+        last unless $header_line =~ /^\@/;
+        next unless $header_line =~ /SN:([^\t]+)\tLN:(\d+)/;
+        $seq_lengths{$1} = $2;
+    }
+    close $bam_fh;
+
+    return \%seq_lengths;
 }
 
 sub get_read_info {
@@ -78,7 +101,15 @@ sub extract_flanking_seqs {
     my ( $read_stats, $flank_length, $ref_fa_file, $samtools_path ) = @_;
 
     get_positions( $read_stats, $flank_length );
-    get_sequences( $read_stats, $ref_fa_file, $samtools_path );
+    if ($bulk) {
+        get_sequences_bulk( $read_stats, $ref_fa_file, $samtools_path );
+    }
+    elsif ($fast) {
+        get_sequences_fast( $read_stats, $ref_fa_file, $samtools_path );
+    }
+    else {
+        get_sequences( $read_stats, $ref_fa_file, $samtools_path );
+    }
 }
 
 sub get_positions {
@@ -101,6 +132,14 @@ sub get_positions {
             $end   = $rt_pos + $flank_length;
         }
         else { die "Problem with strand info\n" }
+
+        my $length = $$seq_lengths{$seq_id};
+
+        delete $$read_stats{$read_id} and next if $end < 1;
+        delete $$read_stats{$read_id} and next if $start > $length;
+
+        $start = max $start, 1;
+        $end   = min $end,   $length;
 
         $$read_stats{$read_id}{start} = $start;
         $$read_stats{$read_id}{end}   = $end;
@@ -131,6 +170,69 @@ sub get_sequences {
     }
 }
 
+sub get_sequences_bulk {
+    my ( $read_stats, $ref_fa_file, $samtools_path ) = @_;
+
+    my %sequences;
+
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $strand = $$read_stats{$read_id}{strand};
+        my $start  = $$read_stats{$read_id}{start};
+        my $end    = $$read_stats{$read_id}{end};
+
+        unless ( exists $sequences{$seq_id} ) {
+            $sequences{$seq_id} = extract_fa_seq( $samtools_path, $ref_fa_file, $seq_id );
+        }
+
+        $$read_stats{$read_id}{flank}
+            = extract_sub_seq( \%sequences, $seq_id, $strand,
+            $start - 1, $end - $start + 1 );
+    }
+}
+
+sub get_sequences_fast {
+    my ( $read_stats, $ref_fa_file, $samtools_path ) = @_;
+
+    my $sequences = get_all_seqs_from_fa($ref_fa_file);
+
+    for my $read_id ( keys $read_stats ) {
+        my $seq_id = $$read_stats{$read_id}{seq_id};
+        my $strand = $$read_stats{$read_id}{strand};
+        my $start  = $$read_stats{$read_id}{start};
+        my $end    = $$read_stats{$read_id}{end};
+
+        $$read_stats{$read_id}{flank}
+            = extract_sub_seq( $sequences, $seq_id, $strand,
+            $start - 1, $end - $start + 1 );
+    }
+}
+
+sub get_all_seqs_from_fa {
+    my $ref_fa_file = shift;
+
+    my %sequences;
+    open my $ref_fa_fh, "<", $ref_fa_file;
+    my ( $seqid, $seq );
+    while ( my $fa_line = <$ref_fa_fh>) {
+        if ($fa_line =~ /^>/) {
+            if ($seq) {
+                $sequences{$seqid} = $seq;
+                $seq = '';
+            }
+            ($seqid) = $fa_line =~ /^>([^\s]+)/;
+        }
+        else{
+            chomp $fa_line;
+            $seq .= $fa_line;
+        }
+    }
+    $sequences{$seqid} = $seq;
+    close $ref_fa_fh;
+
+    return \%sequences;
+}
+
 sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
     my ( $samtools_path, $fa_file, $seqid, $strand, $left_pos, $right_pos )
         = @_;
@@ -145,12 +247,30 @@ sub extract_fa_seq {    # This subroutine from extract-utr v0.2.1
 
     my $seq = join "", @fa_seq;
 
-    if ( defined $strand && $strand eq '-' ) {
-        $seq = reverse $seq;
-        $seq =~ tr/ACGTacgt/TGCAtgca/;
-    }
+    $seq = reverse_complement($seq)
+      if defined $strand && $strand eq '-';
 
     return $seq;
+}
+
+sub extract_sub_seq {
+    my ( $sequences, $seqid, $strand, $left_pos, $right_pos ) = @_;
+
+    my $seq = substr $$sequences{$seqid}, $left_pos, $right_pos;
+
+    $seq = reverse_complement($seq)
+      if defined $strand && $strand eq '-';
+
+    return $seq;
+}
+
+sub reverse_complement {
+    my $seq = shift;
+
+    my $revcom = reverse $seq;
+    $revcom =~ tr/ACGTacgt/TGCAtgca/;
+
+    return $revcom;
 }
 
 sub write_to_fasta {
@@ -165,6 +285,10 @@ sub write_to_fasta {
     for my $read_id ( @ids_sorted_by_coords ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $flank  = $$read_stats{$read_id}{flank};
+
+        # Pad flanking sequence for 'edge-cases'
+        my $length_diff = $flank_length - length $flank;
+        $flank = '-' x $length_diff . $flank if $length_diff;
 
         my $read_id_desc = "$read_id -${flank_length}bp..-1bp";
         output_fa( $read_id_desc, $flank, $output_fa_fh, $fa_width );
