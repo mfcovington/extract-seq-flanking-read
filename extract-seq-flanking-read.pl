@@ -37,6 +37,7 @@ my $options = GetOptions(
 
 check_options( $samtools_path );
 
+my $seq_lengths = get_seq_lengths( $bam_file, $samtools_path );
 my $read_stats = get_read_info( $bam_file, $samtools_path );
 extract_flanking_seqs( $read_stats, $flank_length, $ref_fa_file,
     $samtools_path );
@@ -49,6 +50,23 @@ sub check_options {
 
     die "Specify correct '--samtools_path'\n"
         unless -e $samtools_path;
+}
+
+sub get_seq_lengths {
+    my ( $bam_file, $samtools_path ) = @_;
+
+    my %seq_lengths;
+
+    my $samtools_cmd = "$samtools_path view -H $bam_file";
+    open my $bam_fh, "-|", $samtools_cmd;
+    while ( my $header_line = <$bam_fh> ) {
+        last unless $header_line =~ /^\@/;
+        next unless $header_line =~ /SN:([^\t]+)\tLN:(\d+)/;
+        $seq_lengths{$1} = $2;
+    }
+    close $bam_fh;
+
+    return \%seq_lengths;
 }
 
 sub get_read_info {
