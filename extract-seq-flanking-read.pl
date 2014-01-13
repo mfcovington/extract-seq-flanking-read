@@ -284,6 +284,10 @@ sub write_to_fasta {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $flank  = $$read_stats{$read_id}{flank};
 
+        # Pad flanking sequence for 'edge-cases'
+        my $length_diff = $flank_length - length $flank;
+        $flank = '-' x $length_diff . $flank if $length_diff;
+
         my $read_id_desc = "$read_id -${flank_length}bp..-1bp";
         output_fa( $read_id_desc, $flank, $output_fa_fh, $fa_width );
     }
