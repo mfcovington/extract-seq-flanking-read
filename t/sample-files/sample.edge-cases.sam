@@ -1,0 +1,16 @@
+@HD	VN:1.0	SO:coordinate
+@SQ	SN:A01	LN:8500
+@SQ	SN:A02	LN:27848129
+@SQ	SN:A03	LN:31716688
+@SQ	SN:A04	LN:18967243
+@SQ	SN:A05	LN:23941934
+@SQ	SN:A06	LN:26273242
+@SQ	SN:A07	LN:22587824
+@SQ	SN:A08	LN:21596550
+@SQ	SN:A09	LN:37123981
+@SQ	SN:A10	LN:17595035
+@PG	ID:bwa	PN:bwa	VN:0.6.1-r104
+nothing-upstream-plus-strand	0	A01	1	37	50M	*	0	0	CCTATTCTCAAATACCCCTAATCTCAAATACTCTTAATCTCAAATACCCT	eegggggiiiihihiiiiiihiffhiiihiiiiiiihiiiihiighehig	XT:A:U	NM:i:2	X0:i:1	X1:i:0	XM:i:2	XO:i:0	XG:i:0	MD:Z:50
+only-5bp-upstream-plus-strand	0	A01	6	37	50M	*	0	0	TCTCAAATACCCCTAATCTCAAATACTCTTAATCTCAAATACCCTTTTAA	eegggggiiiihihiiiiiihiffhiiihiiiiiiihiiiihiighehig	XT:A:U	NM:i:0	X0:i:1	X1:i:0	XM:i:0	XO:i:0	XG:i:0	MD:Z:50
+only-5bp-upstream-minus-strand	16	A01	8446	0	50M	*	0	0	CACTCTTGCTTTCATATGATGCATAAGCTTTGATTATTGAAACATACACG	eegggggiiiihihiiiiiihiffhiiihiiiiiiihiiiihiighehig	XT:A:R	NM:i:2	X0:i:4	X1:i:0	XM:i:2	XO:i:0	XG:i:0	MD:Z:50
+nothing-upstream-minus-strand	16	A01	8451	0	50M	*	0	0	TTGCTTTCATATGATGCATAAGCTTTGATTATTGAAACATACACGTCAAT	eegggggiiiihihiiiiiihiffhiiihiiiiiiihiiiihiighehig	XT:A:R	NM:i:2	X0:i:4	X1:i:0	XM:i:2	XO:i:0	XG:i:0	MD:Z:50
