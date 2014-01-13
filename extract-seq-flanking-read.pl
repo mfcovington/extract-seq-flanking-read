@@ -131,17 +131,27 @@ sub get_positions {
         }
         else { die "Problem with strand info\n" }
 
-        my $length = $$seq_lengths{$seq_id};
-
-        delete $$read_stats{$read_id} and next if $end < 1;
-        delete $$read_stats{$read_id} and next if $start > $length;
-
-        $start = max $start, 1;
-        $end   = min $end,   $length;
+        next
+            unless pos_within_ref_seq( $seq_id, $read_id, $read_stats,
+            \$start, \$end, $seq_lengths );
 
         $$read_stats{$read_id}{start} = $start;
         $$read_stats{$read_id}{end}   = $end;
     }
+}
+
+sub pos_within_ref_seq {
+    my ( $seq_id, $read_id, $read_stats, $start, $end, $seq_lengths ) = @_;
+
+    my $length = $$seq_lengths{$seq_id};
+
+    delete $$read_stats{$read_id} and return if $$end < 1;
+    delete $$read_stats{$read_id} and return if $$start > $length;
+
+    $$start = max $$start, 1;
+    $$end   = min $$end,   $length;
+
+    return 1;
 }
 
 sub cigar_to_length {
