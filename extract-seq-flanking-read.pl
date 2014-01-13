@@ -9,7 +9,7 @@ use warnings;
 use autodie;
 use feature 'say';
 use Getopt::Long;
-use List::Util 'sum';
+use List::Util qw( sum min max );
 
 #TODO: Add README
 #TODO: Consider other CIGAR score variants?
@@ -100,10 +100,10 @@ sub extract_flanking_seqs {
 
     get_positions( $read_stats, $flank_length );
     if ($bulk) {
-        get_sequences_bulk( $read_stats, $ref_fa_file, $flank_length, $samtools_path );
+        get_sequences_bulk( $read_stats, $ref_fa_file, $samtools_path );
     }
     elsif ($fast) {
-        get_sequences_fast( $read_stats, $ref_fa_file, $flank_length, $samtools_path );
+        get_sequences_fast( $read_stats, $ref_fa_file, $samtools_path );
     }
     else {
         get_sequences( $read_stats, $ref_fa_file, $samtools_path );
@@ -130,6 +130,14 @@ sub get_positions {
             $end   = $rt_pos + $flank_length;
         }
         else { die "Problem with strand info\n" }
+
+        my $length = $$seq_lengths{$seq_id};
+
+        delete $$read_stats{$read_id} and next if $end < 1;
+        delete $$read_stats{$read_id} and next if $start > $length;
+
+        $start = max $start, 1;
+        $end   = min $end,   $length;
 
         $$read_stats{$read_id}{start} = $start;
         $$read_stats{$read_id}{end}   = $end;
@@ -161,7 +169,7 @@ sub get_sequences {
 }
 
 sub get_sequences_bulk {
-    my ( $read_stats, $ref_fa_file, $flank_length, $samtools_path ) = @_;
+    my ( $read_stats, $ref_fa_file, $samtools_path ) = @_;
 
     my %sequences;
 
@@ -177,12 +185,12 @@ sub get_sequences_bulk {
 
         $$read_stats{$read_id}{flank}
             = extract_sub_seq( \%sequences, $seq_id, $strand,
-            $start - 1, $flank_length );
+            $start - 1, $end - $start + 1 );
     }
 }
 
 sub get_sequences_fast {
-    my ( $read_stats, $ref_fa_file, $flank_length, $samtools_path ) = @_;
+    my ( $read_stats, $ref_fa_file, $samtools_path ) = @_;
 
     my $sequences = get_all_seqs_from_fa($ref_fa_file);
 
@@ -194,7 +202,7 @@ sub get_sequences_fast {
 
         $$read_stats{$read_id}{flank}
             = extract_sub_seq( $sequences, $seq_id, $strand,
-            $start - 1, $flank_length );
+            $start - 1, $end - $start + 1 );
     }
 }
 
