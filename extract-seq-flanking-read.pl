@@ -13,6 +13,8 @@ use List::Util qw( sum min max );
 
 #TODO: Add README
 #TODO: Consider other CIGAR score variants?
+#TODO: Add Usage statement
+#TODO: Default to 'fast mode'
 
 # Defaults
 my $bam_file       = "t/sample-files/sample.bam";
