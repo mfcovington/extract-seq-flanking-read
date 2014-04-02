@@ -25,7 +25,7 @@ sub output_file_names {
     my ( $out_dir, $bam_file ) = @_;
 
     my $sample = fileparse( $bam_file, ".bam" );
-    return "$sample.fa", "$sample.pdf";
+    return "$out_dir/$sample.fa", "$out_dir/$sample.pdf";
 }
 
 sub extract_flanking_seq {
