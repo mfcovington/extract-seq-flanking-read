@@ -10,8 +10,22 @@ use Log::Reproducible;
 use autodie;
 use feature 'say';
 use File::Basename;
+use Getopt::Long;
 
-my ( $ref_fa_file, $out_dir, @bam_file_list ) = @ARGV;
+my ( $ref_fa_file, $out_dir );
+my $flank_length = 10;
+
+my $options = GetOptions(
+    "ref_fa_file=s"  => \$ref_fa_file,
+    "out_dir=s"      => \$out_dir,
+    "flank_length=i" => \$flank_length,
+);
+
+die "Specify reference FASTA file with --ref_fa_file"
+    if !defined $ref_fa_file;
+die "Specify output directory with --out_dir" if !defined $out_dir;
+
+my @bam_file_list = @ARGV;
 
 for my $bam_file (@bam_file_list) {
     my ( $fa_out, $logo_out ) = output_file_names( $out_dir, $bam_file );
@@ -36,6 +50,7 @@ sub extract_flanking_seq {
   --bam_file $bam_file \\
   --ref_fa_file $ref_fa_file \\
   --output_fa_file $fa_out \\
+  --flank_length $flank_length \\
   --fast
 EOF
 
