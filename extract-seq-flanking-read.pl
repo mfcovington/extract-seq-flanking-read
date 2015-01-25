@@ -116,7 +116,7 @@ sub extract_flanking_seqs {
 sub get_positions {
     my ( $read_stats, $flank_length ) = @_;
 
-    for my $read_id ( keys $read_stats ) {
+    for my $read_id ( keys %$read_stats ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $strand = $$read_stats{$read_id}{strand};
         my $pos    = $$read_stats{$read_id}{pos};
@@ -159,7 +159,7 @@ sub cigar_to_length {
 sub get_sequences {
     my ( $read_stats, $ref_fa_file, $samtools_path ) = @_;
 
-    for my $read_id ( keys $read_stats ) {
+    for my $read_id ( keys %$read_stats ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $strand = $$read_stats{$read_id}{strand};
         my $start  = $$read_stats{$read_id}{start};
@@ -176,7 +176,7 @@ sub get_sequences_bulk {
 
     my %sequences;
 
-    for my $read_id ( keys $read_stats ) {
+    for my $read_id ( keys %$read_stats ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $strand = $$read_stats{$read_id}{strand};
         my $start  = $$read_stats{$read_id}{start};
@@ -197,7 +197,7 @@ sub get_sequences_fast {
 
     my $sequences = get_all_seqs_from_fa($ref_fa_file);
 
-    for my $read_id ( keys $read_stats ) {
+    for my $read_id ( keys %$read_stats ) {
         my $seq_id = $$read_stats{$read_id}{seq_id};
         my $strand = $$read_stats{$read_id}{strand};
         my $start  = $$read_stats{$read_id}{start};
@@ -280,7 +280,7 @@ sub write_to_fasta {
     my @ids_sorted_by_coords = sort {
         $$read_stats{$a}{seq_id} cmp $$read_stats{$b}{seq_id}
             || $$read_stats{$a}{pos} <=> $$read_stats{$b}{pos}
-    } keys $read_stats;
+    } keys %$read_stats;
 
     open my $output_fa_fh, ">", $output_fa_file;
     for my $read_id ( @ids_sorted_by_coords ) {
