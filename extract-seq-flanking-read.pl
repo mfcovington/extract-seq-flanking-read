@@ -21,7 +21,7 @@ use List::Util qw( sum min max );
 my $bam_file       = "t/sample-files/sample.bam";
 my $ref_fa_file    = "t/sample-files/sample.fa";
 my $output_fa_file = "out.fa";
-my $samtools_path  = glob "~/installs/bin/samtools";
+my $samtools_path  = `which samtools`;
 
 my $flank_length = 10;
 my $fa_width     = 80;
@@ -38,6 +38,7 @@ my $options = GetOptions(
     "fast"             => \$fast,
 );
 
+chomp $samtools_path;
 check_options( $samtools_path );
 
 my $seq_lengths = get_seq_lengths( $bam_file, $samtools_path );
