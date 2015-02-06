@@ -10,6 +10,7 @@ use Log::Reproducible;
 use autodie;
 use feature 'say';
 use File::Basename;
+use File::Path 'make_path';
 use Getopt::Long;
 
 my ( $ref_fa_file, $out_dir );
@@ -26,6 +27,8 @@ die "Specify reference FASTA file with --ref_fa_file"
 die "Specify output directory with --out_dir" if !defined $out_dir;
 
 my @bam_file_list = @ARGV;
+
+make_path $out_dir;
 
 for my $bam_file (@bam_file_list) {
     my ( $fa_out, $logo_out ) = output_file_names( $out_dir, $bam_file );
