@@ -64,7 +64,7 @@ sub build_seq_logo {
     my ( $fa_out, $logo_out ) = @_;    # $logo_out not yet implemented
 
     my $logo_cmd = <<EOF;
-~/git.repos/fasta-manipulation/logo-from-fasta.pl \\
+~/git.repos/fasta-tools/bin/logo-from-fasta.pl \\
   --fasta_file $fa_out
 EOF
 
